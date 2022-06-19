@@ -20,10 +20,14 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	var mouse_pos := get_global_mouse_position()
+	var grid_pos := _pixel_to_grid(mouse_pos.x, mouse_pos.y)
+
 	_swipe()
 
 	if Input.is_action_just_pressed("right_click"):
 		print(_pixel_to_grid(get_global_mouse_position().x, get_global_mouse_position().y))
+		_delete_row(grid_pos.y)
 
 
 func _create_grid() -> void:
@@ -57,9 +61,9 @@ func _create_piece(col: int, row: int, possible_pieces: Array, prevent_match: bo
 	return piece
 
 
-func _delete_piece(col: int, row: int) -> void:
+func _delete_piece(col: int, row: int, must_match: bool) -> void:
 	var piece: Node2D = pieces[col][row]
-	if piece != null and piece.matched:
+	if piece != null and (piece.matched or !must_match):
 		piece.delete()
 		pieces[col][row] = null
 
@@ -157,7 +161,7 @@ func _find_matches(from_swap: bool) -> void:
 func _collapse_grid() -> void:
 	for x in width:
 		for y in height:
-			_delete_piece(x, y)
+			_delete_piece(x, y, true)
 
 	$refill_timer.start()
 
@@ -223,6 +227,13 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 
 	if !swap_back:
 		_find_matches(true)
+
+
+func _delete_row(row: int) -> void:
+	for x in width:
+		_delete_piece(x, row, false)
+
+	$refill_timer.start()
 
 
 func _on_collapse_timer_timeout() -> void:
