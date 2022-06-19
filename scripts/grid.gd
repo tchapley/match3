@@ -27,7 +27,8 @@ func _process(_delta: float) -> void:
 
 	if Input.is_action_just_pressed("right_click"):
 		print(_pixel_to_grid(get_global_mouse_position().x, get_global_mouse_position().y))
-		_delete_row(grid_pos.y)
+#		_delete_row(grid_pos.y)
+		_random_delete(10)
 
 
 func _create_grid() -> void:
@@ -179,8 +180,6 @@ func _refill_grid() -> void:
 						pieces[x][i] = null
 						break
 
-	_find_matches(false)
-
 	for x in width:
 		for y in height:
 			var piece: Node2D = _select_piece(x, y)
@@ -188,6 +187,9 @@ func _refill_grid() -> void:
 				pieces[x][y] = _create_piece(x, y, pieces_scenes, false)
 			else:
 				piece.move(_grid_to_pixel(x, y))
+
+	yield(get_tree().create_timer(.4), "timeout")
+	_find_matches(false)
 
 
 func _swipe() -> void:
@@ -232,6 +234,19 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 func _delete_row(row: int) -> void:
 	for x in width:
 		_delete_piece(x, row, false)
+
+	$refill_timer.start()
+
+
+func _random_delete(cells_to_delete: int) -> void:
+	for i in range(cells_to_delete):
+		var deleted := false
+		while !deleted:
+			var col := rand_range(0, width)
+			var row := rand_range(0, height)
+			if pieces[col][row] != null:
+				deleted = true
+				_delete_piece(col, row, false)
 
 	$refill_timer.start()
 

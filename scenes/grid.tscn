@@ -12,9 +12,11 @@ y_start = 704
 pieces_scenes = [ ExtResource( 2 ), ExtResource( 3 ), ExtResource( 4 ), ExtResource( 5 ) ]
 
 [node name="collapse_timer" type="Timer" parent="."]
+wait_time = 0.5
 one_shot = true
 
 [node name="refill_timer" type="Timer" parent="."]
+wait_time = 0.5
 one_shot = true
 
 [connection signal="timeout" from="collapse_timer" to="." method="_on_collapse_timer_timeout"]
