@@ -167,6 +167,7 @@ func _collapse_grid() -> void:
 	$refill_timer.start()
 
 
+# TODO: Fix how pieces spawn
 func _refill_grid() -> void:
 	for x in width:
 		for y in height:
@@ -188,7 +189,7 @@ func _refill_grid() -> void:
 			else:
 				piece.move(_grid_to_pixel(x, y))
 
-	yield(get_tree().create_timer(.4), "timeout")
+	yield(get_tree().create_timer(1.0), "timeout")
 	_find_matches(false)
 
 
