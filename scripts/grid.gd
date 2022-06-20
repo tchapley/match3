@@ -261,14 +261,20 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 func _delete_row(row: int) -> void:
 	if current_state == board_state.DELETING or current_state == board_state.REFILLING:
 		return
-	var middle: int = (width / 2) - 1
+	var middle: float = (float(width) / 2.0)
 	var jump := 1
+	if middle - int(middle) != 0:
+		middle = int(middle)
+		jump = 2
+	else:
+		middle -= 1
 	while middle >= 0:
 		current_state = board_state.DELETING
 		_delete_piece(middle, row, false)
-		_delete_piece(middle + jump, row, false)
+		if middle != width / 2:
+			_delete_piece(middle + jump, row, false)
+			jump += 2
 		middle -= 1
-		jump += 2
 		yield(get_tree().create_timer(1.0), "timeout")
 
 
