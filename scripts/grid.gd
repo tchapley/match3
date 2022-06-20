@@ -4,6 +4,7 @@ enum board_state {
 	PLAYING,
 	DELETING,
 	REFILLING,
+	SWAPPING
 }
 
 const TILE_SIZE = 64
@@ -27,8 +28,12 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	$board_state.text = board_state.keys()[current_state]
 	var mouse_pos := get_global_mouse_position()
 	var grid_pos := _pixel_to_grid(mouse_pos.x, mouse_pos.y)
+
+	if current_state != board_state.PLAYING:
+		return
 
 	_swipe()
 
@@ -37,8 +42,6 @@ func _process(_delta: float) -> void:
 		_delete_row(grid_pos.y)
 #		_delete_col(grid_pos.x)
 #		_random_delete(10)
-
-	$board_state.text = board_state.keys()[current_state]
 
 
 func _create_grid() -> void:
@@ -164,8 +167,9 @@ func _find_matches(from_swap: bool) -> void:
 
 	if !found_matches:
 		if from_swap:
-			yield(get_tree().create_timer(2.0), "timeout")
+			yield(get_tree().create_timer(1.0), "timeout")
 			_swap_pieces(touch_end, touch_start, true)
+			yield(get_tree().create_timer(0.5), "timeout")
 		current_state = board_state.PLAYING
 		return
 
@@ -226,26 +230,20 @@ func _swipe() -> void:
 
 
 func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
-	if !current_state == board_state.PLAYING:
-		return
+
 	var direction := end - start
 	direction = direction.normalized()
 	var swap := start + direction
 	var swap_piece: Node2D = _select_piece(swap.x, swap.y)
-	if direction.x == 1 or direction.x == -1:
-		print("Swapping with: " + str(start + direction))
-		print("Left/Right")
-		pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
-		pieces[start.x][start.y] = swap_piece
-		pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
-		pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
-	elif direction.y == 1 or direction.y == -1:
-		print("Swapping with: " + str(start + direction))
-		print("Up/Down")
-		pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
-		pieces[start.x][start.y] = swap_piece
-		pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
-		pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
+	if (direction.x != 0 and direction.y != 0) or (direction == Vector2.ZERO):
+		return
+	current_state = board_state.SWAPPING
+	print("Swapping with: " + str(start + direction))
+	print(direction)
+	pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
+	pieces[start.x][start.y] = swap_piece
+	pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
+	pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
 
 	if !swap_back:
 		_find_matches(true)
@@ -259,8 +257,6 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 
 # TODO: Fix the how the refill happens after this call
 func _delete_row(row: int) -> void:
-	if current_state == board_state.DELETING or current_state == board_state.REFILLING:
-		return
 	var middle: float = (float(width) / 2.0)
 	var jump := 1
 	if middle - int(middle) != 0:
