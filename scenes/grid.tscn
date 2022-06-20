@@ -11,6 +11,15 @@ script = ExtResource( 1 )
 y_start = 704
 pieces_scenes = [ ExtResource( 2 ), ExtResource( 3 ), ExtResource( 4 ), ExtResource( 5 ) ]
 
+[node name="board_state" type="Label" parent="."]
+margin_left = 334.0
+margin_top = 21.0
+margin_right = 407.0
+margin_bottom = 36.0
+text = "PLAYING"
+align = 1
+autowrap = true
+
 [node name="collapse_timer" type="Timer" parent="."]
 wait_time = 0.5
 one_shot = true

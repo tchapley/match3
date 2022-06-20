@@ -1,5 +1,11 @@
 extends Node2D
 
+enum board_state {
+	PLAYING,
+	DELETING,
+	REFILLING,
+}
+
 const TILE_SIZE = 64
 
 export(int) var width = 10
@@ -13,6 +19,7 @@ var pieces := []
 var touch_start := Vector2.ZERO
 var touch_end := Vector2.ZERO
 var controlling := false
+var current_state = board_state.PLAYING
 
 func _ready() -> void:
 	randomize()
@@ -27,8 +34,11 @@ func _process(_delta: float) -> void:
 
 	if Input.is_action_just_pressed("right_click"):
 		print(_pixel_to_grid(get_global_mouse_position().x, get_global_mouse_position().y))
-#		_delete_row(grid_pos.y)
-		_random_delete(10)
+		_delete_row(grid_pos.y)
+#		_delete_col(grid_pos.x)
+#		_random_delete(10)
+
+	$board_state.text = board_state.keys()[current_state]
 
 
 func _create_grid() -> void:
@@ -152,9 +162,12 @@ func _find_matches(from_swap: bool) -> void:
 			if _check_match(x, y):
 				found_matches = true
 
-	if !found_matches and from_swap:
-		yield(get_tree().create_timer(2.0), "timeout")
-		_swap_pieces(touch_end, touch_start, true)
+	if !found_matches:
+		if from_swap:
+			yield(get_tree().create_timer(2.0), "timeout")
+			_swap_pieces(touch_end, touch_start, true)
+		current_state = board_state.PLAYING
+		return
 
 	$collapse_timer.start()
 
@@ -169,6 +182,10 @@ func _collapse_grid() -> void:
 
 # TODO: Fix how pieces spawn
 func _refill_grid() -> void:
+	if current_state == board_state.DELETING:
+		return
+
+	current_state = board_state.REFILLING
 	for x in width:
 		for y in height:
 			var piece: Node2D = _select_piece(x, y)
@@ -209,6 +226,8 @@ func _swipe() -> void:
 
 
 func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
+	if !current_state == board_state.PLAYING:
+		return
 	var direction := end - start
 	direction = direction.normalized()
 	var swap := start + direction
@@ -232,9 +251,33 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 		_find_matches(true)
 
 
+#var array = [3, 6, 9]
+#var i := array.size() - 1
+#while i >= 0:
+#    print(array[i])
+#    i -= 1
+
+# TODO: Fix the how the refill happens after this call
 func _delete_row(row: int) -> void:
-	for x in width:
-		_delete_piece(x, row, false)
+	if current_state == board_state.DELETING or current_state == board_state.REFILLING:
+		return
+	var middle: int = (width / 2) - 1
+	var jump := 1
+	while middle >= 0:
+		current_state = board_state.DELETING
+		_delete_piece(middle, row, false)
+		_delete_piece(middle + jump, row, false)
+		middle -= 1
+		jump += 2
+		yield(get_tree().create_timer(1.0), "timeout")
+
+
+	$refill_timer.start()
+
+
+func _delete_col(col: int) -> void:
+	for y in height:
+		_delete_piece(col, y, false)
 
 	$refill_timer.start()
 
@@ -257,4 +300,5 @@ func _on_collapse_timer_timeout() -> void:
 
 
 func _on_refill_timer_timeout() -> void:
+	current_state = board_state.PLAYING
 	_refill_grid()
