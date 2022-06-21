@@ -22,6 +22,9 @@ var touch_end := Vector2.ZERO
 var controlling := false
 var current_state = board_state.PLAYING
 
+onready var l_arrow: Line2D = $l_arrow
+onready var r_arrow: Line2D = $r_arrow
+
 func _ready() -> void:
 	randomize()
 	_create_grid()
@@ -249,13 +252,6 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 		_find_matches(true)
 
 
-#var array = [3, 6, 9]
-#var i := array.size() - 1
-#while i >= 0:
-#    print(array[i])
-#    i -= 1
-
-# TODO: Fix the how the refill happens after this call
 func _delete_row(row: int) -> void:
 	var middle: float = (float(width) / 2.0)
 	var jump := 1
@@ -266,10 +262,22 @@ func _delete_row(row: int) -> void:
 		middle -= 1
 	while middle >= 0:
 		current_state = board_state.DELETING
+		l_arrow.clear_points()
+		l_arrow.add_point(Vector2(get_viewport_rect().size.x / 2, get_viewport_rect().size.y))
+		l_arrow.add_point(Vector2(_grid_to_pixel(middle, row)))
+		l_arrow.show()
+		if middle != width / 2:
+			r_arrow.clear_points()
+			r_arrow.add_point(Vector2(get_viewport_rect().size.x / 2, get_viewport_rect().size.y))
+			r_arrow.add_point(Vector2(_grid_to_pixel(middle + jump, row)))
+			r_arrow.show()
+		yield(get_tree().create_timer(1.0), "timeout")
 		_delete_piece(middle, row, false)
+		l_arrow.hide()
 		if middle != width / 2:
 			_delete_piece(middle + jump, row, false)
 			jump += 2
+			r_arrow.hide()
 		middle -= 1
 		yield(get_tree().create_timer(1.0), "timeout")
 
