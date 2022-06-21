@@ -1,5 +1,12 @@
 extends Node2D
 
+enum board_state {
+	PLAYING,
+	DELETING,
+	REFILLING,
+	SWAPPING
+}
+
 const TILE_SIZE = 64
 
 export(int) var width = 10
@@ -13,6 +20,10 @@ var pieces := []
 var touch_start := Vector2.ZERO
 var touch_end := Vector2.ZERO
 var controlling := false
+var current_state = board_state.PLAYING
+
+onready var l_arrow: Line2D = $l_arrow
+onready var r_arrow: Line2D = $r_arrow
 
 func _ready() -> void:
 	randomize()
@@ -20,10 +31,20 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	$board_state.text = board_state.keys()[current_state]
+	var mouse_pos := get_global_mouse_position()
+	var grid_pos := _pixel_to_grid(mouse_pos.x, mouse_pos.y)
+
+	if current_state != board_state.PLAYING:
+		return
+
 	_swipe()
 
 	if Input.is_action_just_pressed("right_click"):
 		print(_pixel_to_grid(get_global_mouse_position().x, get_global_mouse_position().y))
+		_delete_row(grid_pos.y)
+#		_delete_col(grid_pos.x)
+#		_random_delete(10)
 
 
 func _create_grid() -> void:
@@ -57,9 +78,9 @@ func _create_piece(col: int, row: int, possible_pieces: Array, prevent_match: bo
 	return piece
 
 
-func _delete_piece(col: int, row: int) -> void:
+func _delete_piece(col: int, row: int, must_match: bool) -> void:
 	var piece: Node2D = pieces[col][row]
-	if piece != null and piece.matched:
+	if piece != null and (piece.matched or !must_match):
 		piece.delete()
 		pieces[col][row] = null
 
@@ -147,9 +168,13 @@ func _find_matches(from_swap: bool) -> void:
 			if _check_match(x, y):
 				found_matches = true
 
-	if !found_matches and from_swap:
-		yield(get_tree().create_timer(2.0), "timeout")
-		_swap_pieces(touch_end, touch_start, true)
+	if !found_matches:
+		if from_swap:
+			yield(get_tree().create_timer(1.0), "timeout")
+			_swap_pieces(touch_end, touch_start, true)
+			yield(get_tree().create_timer(0.5), "timeout")
+		current_state = board_state.PLAYING
+		return
 
 	$collapse_timer.start()
 
@@ -157,12 +182,17 @@ func _find_matches(from_swap: bool) -> void:
 func _collapse_grid() -> void:
 	for x in width:
 		for y in height:
-			_delete_piece(x, y)
+			_delete_piece(x, y, true)
 
 	$refill_timer.start()
 
 
+# TODO: Fix how pieces spawn
 func _refill_grid() -> void:
+	if current_state == board_state.DELETING:
+		return
+
+	current_state = board_state.REFILLING
 	for x in width:
 		for y in height:
 			var piece: Node2D = _select_piece(x, y)
@@ -175,8 +205,6 @@ func _refill_grid() -> void:
 						pieces[x][i] = null
 						break
 
-	_find_matches(false)
-
 	for x in width:
 		for y in height:
 			var piece: Node2D = _select_piece(x, y)
@@ -184,6 +212,9 @@ func _refill_grid() -> void:
 				pieces[x][y] = _create_piece(x, y, pieces_scenes, false)
 			else:
 				piece.move(_grid_to_pixel(x, y))
+
+	yield(get_tree().create_timer(1.0), "timeout")
+	_find_matches(false)
 
 
 func _swipe() -> void:
@@ -202,27 +233,76 @@ func _swipe() -> void:
 
 
 func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
+
 	var direction := end - start
 	direction = direction.normalized()
 	var swap := start + direction
 	var swap_piece: Node2D = _select_piece(swap.x, swap.y)
-	if direction.x == 1 or direction.x == -1:
-		print("Swapping with: " + str(start + direction))
-		print("Left/Right")
-		pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
-		pieces[start.x][start.y] = swap_piece
-		pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
-		pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
-	elif direction.y == 1 or direction.y == -1:
-		print("Swapping with: " + str(start + direction))
-		print("Up/Down")
-		pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
-		pieces[start.x][start.y] = swap_piece
-		pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
-		pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
+	if (direction.x != 0 and direction.y != 0) or (direction == Vector2.ZERO):
+		return
+	current_state = board_state.SWAPPING
+	print("Swapping with: " + str(start + direction))
+	print(direction)
+	pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
+	pieces[start.x][start.y] = swap_piece
+	pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
+	pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
 
 	if !swap_back:
 		_find_matches(true)
+
+
+func _delete_row(row: int) -> void:
+	var middle: float = (float(width) / 2.0)
+	var jump := 1
+	if middle - int(middle) != 0:
+		middle = int(middle)
+		jump = 2
+	else:
+		middle -= 1
+	while middle >= 0:
+		current_state = board_state.DELETING
+		l_arrow.clear_points()
+		l_arrow.add_point(Vector2(get_viewport_rect().size.x / 2, get_viewport_rect().size.y))
+		l_arrow.add_point(Vector2(_grid_to_pixel(middle, row)))
+		l_arrow.show()
+		if middle != width / 2:
+			r_arrow.clear_points()
+			r_arrow.add_point(Vector2(get_viewport_rect().size.x / 2, get_viewport_rect().size.y))
+			r_arrow.add_point(Vector2(_grid_to_pixel(middle + jump, row)))
+			r_arrow.show()
+		yield(get_tree().create_timer(1.0), "timeout")
+		_delete_piece(middle, row, false)
+		l_arrow.hide()
+		if middle != width / 2:
+			_delete_piece(middle + jump, row, false)
+			jump += 2
+			r_arrow.hide()
+		middle -= 1
+		yield(get_tree().create_timer(1.0), "timeout")
+
+
+	$refill_timer.start()
+
+
+func _delete_col(col: int) -> void:
+	for y in height:
+		_delete_piece(col, y, false)
+
+	$refill_timer.start()
+
+
+func _random_delete(cells_to_delete: int) -> void:
+	for i in range(cells_to_delete):
+		var deleted := false
+		while !deleted:
+			var col := rand_range(0, width)
+			var row := rand_range(0, height)
+			if pieces[col][row] != null:
+				deleted = true
+				_delete_piece(col, row, false)
+
+	$refill_timer.start()
 
 
 func _on_collapse_timer_timeout() -> void:
@@ -230,4 +310,5 @@ func _on_collapse_timer_timeout() -> void:
 
 
 func _on_refill_timer_timeout() -> void:
+	current_state = board_state.PLAYING
 	_refill_grid()

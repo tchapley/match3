@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=7 format=2]
 
 [ext_resource path="res://scripts/grid.gd" type="Script" id=1]
 [ext_resource path="res://scenes/blue_piece.tscn" type="PackedScene" id=2]
@@ -6,15 +6,43 @@
 [ext_resource path="res://scenes/orange_piece.tscn" type="PackedScene" id=4]
 [ext_resource path="res://scenes/pink_piece.tscn" type="PackedScene" id=5]
 
+[sub_resource type="Gradient" id=1]
+colors = PoolColorArray( 0.777344, 0.221664, 0.221664, 1, 0.632358, 0.933594, 0.536087, 1 )
+
 [node name="grid" type="Node2D"]
 script = ExtResource( 1 )
 y_start = 704
 pieces_scenes = [ ExtResource( 2 ), ExtResource( 3 ), ExtResource( 4 ), ExtResource( 5 ) ]
 
+[node name="l_arrow" type="Line2D" parent="."]
+z_index = 8
+z_as_relative = false
+default_color = Color( 0.4, 0.501961, 1, 1 )
+gradient = SubResource( 1 )
+joint_mode = 2
+
+[node name="r_arrow" type="Line2D" parent="."]
+z_index = 8
+z_as_relative = false
+default_color = Color( 0.4, 0.501961, 1, 1 )
+gradient = SubResource( 1 )
+joint_mode = 2
+
+[node name="board_state" type="Label" parent="."]
+margin_left = 334.0
+margin_top = 21.0
+margin_right = 407.0
+margin_bottom = 36.0
+text = "PLAYING"
+align = 1
+autowrap = true
+
 [node name="collapse_timer" type="Timer" parent="."]
+wait_time = 0.5
 one_shot = true
 
 [node name="refill_timer" type="Timer" parent="."]
+wait_time = 0.5
 one_shot = true
 
 [connection signal="timeout" from="collapse_timer" to="." method="_on_collapse_timer_timeout"]
