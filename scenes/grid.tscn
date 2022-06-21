@@ -13,6 +13,7 @@ colors = PoolColorArray( 0.777344, 0.221664, 0.221664, 1, 0.632358, 0.933594, 0.
 script = ExtResource( 1 )
 y_start = 704
 pieces_scenes = [ ExtResource( 2 ), ExtResource( 3 ), ExtResource( 4 ), ExtResource( 5 ) ]
+empty_pieces = [ Vector2( 1, 1 ), Vector2( 2, 2 ), Vector2( 3, 3 ), Vector2( 4, 4 ), Vector2( 5, 5 ), Vector2( 6, 6 ), Vector2( 7, 7 ), Vector2( 8, 8 ), Vector2( 9, 9 ) ]
 
 [node name="l_arrow" type="Line2D" parent="."]
 z_index = 8

@@ -15,6 +15,7 @@ export(int) var x_start = TILE_SIZE
 export(int) var y_start = (TILE_SIZE * height) + TILE_SIZE
 export(int) var offset = TILE_SIZE / 2
 export(Array, PackedScene) var pieces_scenes
+export(Array, Vector2) var empty_pieces
 
 var pieces := []
 var touch_start := Vector2.ZERO
@@ -61,6 +62,10 @@ func _create_grid() -> void:
 
 
 func _create_piece(col: int, row: int, possible_pieces: Array, prevent_match: bool) -> Node2D:
+	for i in empty_pieces.size():
+		if Vector2(col, row) == empty_pieces[i]:
+			return null
+
 	if possible_pieces.size() == 0:
 		return null
 
@@ -196,7 +201,7 @@ func _refill_grid() -> void:
 	for x in width:
 		for y in height:
 			var piece: Node2D = _select_piece(x, y)
-			if piece == null:
+			if piece == null and empty_pieces.find(Vector2(x, y)) == -1:
 				for i in range(y + 1, height):
 					var new_piece: Node2D = _select_piece(x, i)
 					if new_piece != null:
@@ -207,11 +212,12 @@ func _refill_grid() -> void:
 
 	for x in width:
 		for y in height:
-			var piece: Node2D = _select_piece(x, y)
-			if piece == null:
-				pieces[x][y] = _create_piece(x, y, pieces_scenes, false)
-			else:
-				piece.move(_grid_to_pixel(x, y))
+			if empty_pieces.find(Vector2(x, y)) == -1:
+				var piece: Node2D = _select_piece(x, y)
+				if piece == null:
+					pieces[x][y] = _create_piece(x, y, pieces_scenes, false)
+				else:
+					piece.move(_grid_to_pixel(x, y))
 
 	yield(get_tree().create_timer(1.0), "timeout")
 	_find_matches(false)
@@ -237,13 +243,16 @@ func _swap_pieces(start: Vector2, end: Vector2, swap_back: bool) ->  void:
 	var direction := end - start
 	direction = direction.normalized()
 	var swap := start + direction
+	var start_piece: Node2D = _select_piece(start.x, start.y)
 	var swap_piece: Node2D = _select_piece(swap.x, swap.y)
+	if start_piece == null or swap_piece == null:
+		return
 	if (direction.x != 0 and direction.y != 0) or (direction == Vector2.ZERO):
 		return
 	current_state = board_state.SWAPPING
 	print("Swapping with: " + str(start + direction))
 	print(direction)
-	pieces[swap.x][swap.y] = _select_piece(start.x, start.y)
+	pieces[swap.x][swap.y] = start_piece
 	pieces[start.x][start.y] = swap_piece
 	pieces[start.x][start.y].move(_grid_to_pixel(start.x, start.y))
 	pieces[swap.x][swap.y].move(_grid_to_pixel(swap.x, swap.y))
