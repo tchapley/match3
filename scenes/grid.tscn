@@ -28,15 +28,6 @@ default_color = Color( 0.4, 0.501961, 1, 1 )
 gradient = SubResource( 1 )
 joint_mode = 2
 
-[node name="board_state" type="Label" parent="."]
-margin_left = 334.0
-margin_top = 21.0
-margin_right = 407.0
-margin_bottom = 36.0
-text = "PLAYING"
-align = 1
-autowrap = true
-
 [node name="collapse_timer" type="Timer" parent="."]
 wait_time = 0.5
 one_shot = true

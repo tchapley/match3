@@ -26,12 +26,12 @@ onready var l_arrow: Line2D = $l_arrow
 onready var r_arrow: Line2D = $r_arrow
 
 func _ready() -> void:
+	DebugStats.add_property(self, "current_state", "")
 	randomize()
 	_create_grid()
 
 
 func _process(_delta: float) -> void:
-	$board_state.text = board_state.keys()[current_state]
 	var mouse_pos := get_global_mouse_position()
 	var grid_pos := _pixel_to_grid(mouse_pos.x, mouse_pos.y)
 
