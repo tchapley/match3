@@ -43,9 +43,9 @@ func _process(_delta: float) -> void:
 
 	if Input.is_action_just_pressed("right_click"):
 		print(_pixel_to_grid(get_global_mouse_position().x, get_global_mouse_position().y))
-		_delete_row(grid_pos.y)
+#		_delete_row(grid_pos.y)
 #		_delete_col(grid_pos.x)
-#		_random_delete(10)
+		_random_delete(10)
 
 
 func _create_grid() -> void:
@@ -302,14 +302,40 @@ func _delete_col(col: int) -> void:
 
 
 func _random_delete(cells_to_delete: int) -> void:
+	var col: int = 0
+	var row: int = 0
+	var last_tile := Vector2(col, row)
 	for i in range(cells_to_delete):
 		var deleted := false
 		while !deleted:
-			var col := rand_range(0, width)
-			var row := rand_range(0, height)
+			l_arrow.clear_points()
+			print("Last Tile: " + str(last_tile))
+			if i == 0:
+				l_arrow.add_point(Vector2(get_viewport_rect().size.x / 2, get_viewport_rect().size.y))
+				col = rand_range(0, width)
+				row = rand_range(0, height)
+			else:
+				l_arrow.add_point(_grid_to_pixel(last_tile.x, last_tile.y))
+				col += rand_range(-4, 4)
+				row += rand_range(-4, 4)
+				if !_in_grid(col, row):
+					if _in_grid(col * -1, row):
+						col *= -1
+					elif _in_grid(col, row * -1):
+						row *= -1
+					else:
+						continue
+
 			if pieces[col][row] != null:
+				l_arrow.add_point(Vector2(_grid_to_pixel(col, row)))
+				print("Deleting " + str(col) + " " + str(row))
 				deleted = true
+				l_arrow.show()
+				yield(get_tree().create_timer(1.0), "timeout")
 				_delete_piece(col, row, false)
+				l_arrow.hide()
+				last_tile = Vector2(col, row)
+
 
 	$refill_timer.start()
 
